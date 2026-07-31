@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LGU EPTMIS</title>
+    <meta
+      name="description"
+      content="LGU Employee Progress Tracking Management Information System documentation and optional landing page."
+    >
+    <link rel="canonical" href="https://lgu-eptmis.com/">
+    <meta property="og:title" content="LGU EPTMIS">
+    <meta
+      property="og:description"
+      content="A local-first management information system for LGU employee tasks, reporting, IPCR workflows, and synchronization."
+    >
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://lgu-eptmis.com/">
+    <meta property="og:image" content="https://lgu-eptmis.com/assets/MuniLuna.png">
+    <link rel="icon" href="assets/MuniLuna.png">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="site-header" id="top">
+      <a class="brand" href="#top" aria-label="LGU EPTMIS home">
+        <img src="assets/MuniLuna.png" alt="" width="44" height="44">
+        <span>
+          <strong>LGU EPTMIS</strong>
+          <small>Employee Progress Tracking MIS</small>
+        </span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#overview">Overview</a>
+        <a href="#features">Features</a>
+        <a href="#documentation">README</a>
+        <a class="nav-action" href="https://portal.lgu-eptmis.com/">Open Portal</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-content">
+          <p class="eyebrow">Public system overview</p>
+          <h1 id="hero-title">LGU Employee Progress Tracking Management Information System</h1>
+          <p class="hero-copy">
+            A local-first web system for accountable task assignments, department
+            workflows, progress evidence, accomplishment reports, IPCR reviews,
+            and cloud synchronization when needed.
+          </p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button primary" href="#documentation">Read System README</a>
+            <a class="button secondary" href="https://portal.lgu-eptmis.com/">Open Portal</a>
+          </div>
+        </div>
+
+        <div class="system-preview" aria-label="EPTMIS dashboard preview">
+          <aside class="preview-sidebar">
+            <div class="preview-menu-title">Menu</div>
+            <span class="preview-nav active">Dashboard</span>
+            <span class="preview-nav">Task Management</span>
+            <span class="preview-nav">IPCR Management</span>
+            <span class="preview-nav">Report Management</span>
+            <span class="preview-nav">Settings</span>
+            <span class="preview-logout">Logout</span>
+          </aside>
+
+          <div class="preview-workspace">
+            <div class="preview-topbar">
+              <div>
+                <p class="preview-kicker">Dashboard</p>
+                <h2>System Snapshot</h2>
+              </div>
+              <span class="preview-role">Public</span>
+            </div>
+
+            <div class="preview-card-grid">
+              <article class="preview-card">
+                <span>Visible Roles</span>
+                <strong>5</strong>
+                <small>Admin, Mayor, Head, HRMO, Employee</small>
+              </article>
+              <article class="preview-card">
+                <span>Core Modules</span>
+                <strong>8</strong>
+                <small>Tasks, reports, IPCR, sync, and more</small>
+              </article>
+            </div>
+
+            <div class="preview-panel">
+              <div class="panel-header">
+                <h3>README Documentation</h3>
+                <span>Live source</span>
+              </div>
+              <div class="panel-row">
+                <span>System Information</span>
+                <b>Ready</b>
+              </div>
+              <div class="panel-row">
+                <span>Deployment Notes</span>
+                <b>Ready</b>
+              </div>
+              <div class="panel-row">
+                <span>API Overview</span>
+                <b>Ready</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="summary-band" id="overview" aria-labelledby="overview-title">
+        <div class="section-shell">
+          <div class="section-heading">
+            <p class="eyebrow">System scope</p>
+            <h2 id="overview-title">Built for LGU work tracking and review</h2>
+          </div>
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span class="card-icon" aria-hidden="true">01</span>
+              <h3>Task Accountability</h3>
+              <p>Track assignments, assignees, files, progress, approvals, rejections, and reassignment history.</p>
+            </article>
+            <article class="summary-card">
+              <span class="card-icon" aria-hidden="true">02</span>
+              <h3>Role-Scoped Workflows</h3>
+              <p>Separate dashboards and permissions for Admin, Mayor, Department Head, HRMO, and Employee roles.</p>
+            </article>
+            <article class="summary-card">
+              <span class="card-icon" aria-hidden="true">03</span>
+              <h3>IPCR Management</h3>
+              <p>Support rating periods, function rows, target commitments, accomplishment reviews, signoffs, and reports.</p>
+            </article>
+            <article class="summary-card">
+              <span class="card-icon" aria-hidden="true">04</span>
+              <h3>Local-First Operation</h3>
+              <p>Keep daily office work running on a local Django server and SQLite, with optional cloud sync.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature-band" id="features" aria-labelledby="features-title">
+        <div class="section-shell split">
+          <div class="section-heading">
+            <p class="eyebrow">Implementation snapshot</p>
+            <h2 id="features-title">What the system README documents</h2>
+            <p>
+              The live documentation below is loaded from this repository's
+              <code>README.md</code>, so the landing page stays aligned with the system
+              description, deployment notes, and API overview.
+            </p>
+          </div>
+          <div class="feature-list" aria-label="Documented areas">
+            <span>React/Vite frontend</span>
+            <span>Django REST backend</span>
+            <span>Task workflow</span>
+            <span>IPCR workflow</span>
+            <span>Reports</span>
+            <span>Notifications</span>
+            <span>Railway backend deployment</span>
+            <span>Cloudflare frontend deployment</span>
+            <span>Supabase sync notes</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="docs-band" id="documentation" aria-labelledby="documentation-title">
+        <div class="docs-layout">
+          <aside class="toc-panel" aria-labelledby="toc-title">
+            <h2 id="toc-title">README Sections</h2>
+            <nav id="toc" aria-label="README table of contents"></nav>
+          </aside>
+          <article class="readme-panel" aria-labelledby="documentation-title">
+            <div class="readme-toolbar">
+              <div>
+                <p class="eyebrow">System README</p>
+                <h2 id="documentation-title">Documentation</h2>
+              </div>
+              <a class="button compact" href="README.md">Open Markdown</a>
+            </div>
+            <div id="readme-content" class="markdown-body" aria-live="polite">
+              <p>Loading README.md...</p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>LGU EPTMIS</span>
+      <a href="#top">Back to top</a>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
