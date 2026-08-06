@@ -26,21 +26,60 @@ const renderInline = (value) => {
 
 const closeList = (state, html) => {
   if (state.listOpen) {
-    html.push("</ul>");
+    html.push(`</${state.listType}>`);
     state.listOpen = false;
+    state.listType = "";
   }
+};
+
+const isTableDivider = (line) =>
+  /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+
+const splitTableRow = (line) =>
+  line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+
+const renderTable = (headerLine, dividerLine, rows) => {
+  if (!isTableDivider(dividerLine)) return null;
+
+  const headers = splitTableRow(headerLine);
+  if (!headers.length) return null;
+
+  const bodyRows = rows
+    .filter((row) => row.trim().startsWith("|"))
+    .map(splitTableRow)
+    .filter((cells) => cells.length);
+
+  const headHtml = headers
+    .map((header) => `<th>${renderInline(header)}</th>`)
+    .join("");
+  const bodyHtml = bodyRows
+    .map((cells) => {
+      const cellsHtml = headers
+        .map((_header, index) => `<td>${renderInline(cells[index] || "")}</td>`)
+        .join("");
+      return `<tr>${cellsHtml}</tr>`;
+    })
+    .join("");
+
+  return `<div class="table-wrap"><table><thead><tr>${headHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`;
 };
 
 const renderMarkdown = (markdown) => {
   const html = [];
   const headings = [];
   const lines = markdown.replace(/\r\n/g, "\n").split("\n");
-  const state = { listOpen: false };
+  const state = { listOpen: false, listType: "" };
   let inCode = false;
   let codeBuffer = [];
   let codeLanguage = "";
 
-  for (const rawLine of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index];
     const line = rawLine.trimEnd();
     const fence = line.match(/^```(\w+)?\s*$/);
 
@@ -68,6 +107,24 @@ const renderMarkdown = (markdown) => {
       continue;
     }
 
+    const nextLine = lines[index + 1] || "";
+    if (line.trim().startsWith("|") && isTableDivider(nextLine)) {
+      closeList(state, html);
+      const rows = [];
+      index += 2;
+      while (index < lines.length && lines[index].trim().startsWith("|")) {
+        rows.push(lines[index]);
+        index += 1;
+      }
+      index -= 1;
+
+      const tableHtml = renderTable(line, nextLine, rows);
+      if (tableHtml) {
+        html.push(tableHtml);
+        continue;
+      }
+    }
+
     const heading = line.match(/^(#{1,4})\s+(.+)$/);
     if (heading) {
       closeList(state, html);
@@ -87,11 +144,25 @@ const renderMarkdown = (markdown) => {
 
     const bullet = line.match(/^\s*-\s+(.+)$/);
     if (bullet) {
-      if (!state.listOpen) {
+      if (!state.listOpen || state.listType !== "ul") {
+        closeList(state, html);
         html.push("<ul>");
         state.listOpen = true;
+        state.listType = "ul";
       }
       html.push(`<li>${renderInline(bullet[1])}</li>`);
+      continue;
+    }
+
+    const ordered = line.match(/^\s*\d+\.\s+(.+)$/);
+    if (ordered) {
+      if (!state.listOpen || state.listType !== "ol") {
+        closeList(state, html);
+        html.push("<ol>");
+        state.listOpen = true;
+        state.listType = "ol";
+      }
+      html.push(`<li>${renderInline(ordered[1])}</li>`);
       continue;
     }
 
