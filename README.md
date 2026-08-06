@@ -7,9 +7,11 @@ This manual explains how each user role should use the system during daily opera
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Quick Start by Role](#quick-start-by-role)
 - [User Roles](#user-roles)
 - [Dashboard](#dashboard)
 - [Tasks](#tasks)
+- [Daily Workflow Checklist](#daily-workflow-checklist)
 - [Admin Guide](#admin-guide)
 - [Mayor Guide](#mayor-guide)
 - [Department Head Guide](#department-head-guide)
@@ -44,6 +46,28 @@ If the login fails, check that the username and password are correct. If the acc
 ### Sign Out
 
 Use the account menu or logout button before leaving a shared workstation.
+
+## Quick Start by Role
+
+Use this section when you only need to know where to begin.
+
+| Role | Start Here | Do First |
+| --- | --- | --- |
+| Admin | Dashboard, Manage Users, Manage Departments, Manage Tasks | Confirm users and departments are correct before creating or reviewing organization-wide records. |
+| Mayor | Dashboard, View Departments, View Tasks, Executive IPCR | Review department performance, task status, reports, and audited IPCR forms ready for executive action. |
+| Department Head | Dashboard, Manage Users, Department Tasks, Team Reviews | Check pending clearances, department tasks, employee submissions, and department-scoped records. |
+| Employee | My Tasks, My IPCR, My Reports, Notifications | Review assignments, submit required progress, upload proof of work, and check returned items. |
+
+## Daily Workflow Checklist
+
+For normal office use, follow this order:
+
+1. Sign in and check the dashboard.
+2. Open notifications for new assignments, returned work, approvals, or IPCR updates.
+3. Review tasks by urgency, deadline, status, and priority.
+4. Submit progress or review submitted work before handling lower-priority records.
+5. Check reports only after filters are set to the correct date, department, employee, year, period, or status.
+6. Confirm sync status before assuming cloud backup or cross-site updates are complete.
 
 ## User Roles
 

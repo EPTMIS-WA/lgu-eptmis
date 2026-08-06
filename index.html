@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <div class="read-progress" id="read-progress" aria-hidden="true"></div>
     <header class="site-header" id="top">
       <a class="brand" href="#top" aria-label="LGU EPTMIS home">
         <img src="assets/MuniLuna.png" alt="" width="44" height="44">
@@ -53,6 +54,12 @@
             <a class="button primary" href="#documentation">Read User Manual</a>
             <a class="button secondary" href="https://portal.lgu-eptmis.com/">Open Portal</a>
           </div>
+          <div class="role-shortcuts" aria-label="Manual quick links">
+            <a href="#admin-guide">Admin</a>
+            <a href="#mayor-guide">Mayor</a>
+            <a href="#department-head-guide">Dept Head</a>
+            <a href="#employee-guide">Employee</a>
+          </div>
         </div>
 
         <div class="system-preview" aria-label="EPTMIS dashboard preview">
@@ -70,7 +77,7 @@
             <div class="preview-topbar">
               <div>
                 <p class="preview-kicker">Dashboard</p>
-              <h2>User Manual</h2>
+                <h2>User Manual</h2>
               </div>
               <span class="preview-role">Public</span>
             </div>
@@ -173,6 +180,10 @@
         <div class="docs-layout">
           <aside class="toc-panel" aria-labelledby="toc-title">
             <h2 id="toc-title">Manual Sections</h2>
+            <label class="toc-search">
+              <span>Filter sections</span>
+              <input id="toc-search" type="search" placeholder="Search manual..." autocomplete="off">
+            </label>
             <nav id="toc" aria-label="README table of contents"></nav>
           </aside>
           <article class="readme-panel" aria-labelledby="documentation-title">
@@ -181,7 +192,10 @@
                 <p class="eyebrow">README user manual</p>
                 <h2 id="documentation-title">User Manual</h2>
               </div>
-              <a class="button compact" href="README.md">Open Markdown</a>
+              <div class="toolbar-actions">
+                <a class="button compact" href="#quick-start-by-role">Quick Start</a>
+                <a class="button compact" href="README.md">Open Markdown</a>
+              </div>
             </div>
             <div id="readme-content" class="markdown-body" aria-live="polite">
               <p>Loading README.md...</p>

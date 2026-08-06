@@ -1,5 +1,7 @@
 const content = document.getElementById("readme-content");
 const toc = document.getElementById("toc");
+const tocSearch = document.getElementById("toc-search");
+const readProgress = document.getElementById("read-progress");
 
 const escapeHtml = (value) =>
   value
@@ -177,9 +179,58 @@ const renderMarkdown = (markdown) => {
 const renderToc = (headings) => {
   const visibleHeadings = headings.filter((heading) => heading.level === 2 || heading.level === 3);
   toc.innerHTML = visibleHeadings
-    .map((heading) => `<a class="depth-${heading.level}" href="#${heading.id}">${escapeHtml(heading.text)}</a>`)
+    .map((heading) => `<a class="depth-${heading.level}" href="#${heading.id}" data-section-text="${escapeHtml(heading.text.toLowerCase())}">${escapeHtml(heading.text)}</a>`)
     .join("");
 };
+
+const filterToc = () => {
+  const query = (tocSearch?.value || "").trim().toLowerCase();
+  toc.querySelectorAll("a").forEach((link) => {
+    const text = link.dataset.sectionText || "";
+    link.hidden = query && !text.includes(query);
+  });
+};
+
+const setActiveTocLink = (id) => {
+  toc.querySelectorAll("a").forEach((link) => {
+    link.classList.toggle("active", link.getAttribute("href") === `#${id}`);
+  });
+};
+
+const observeHeadings = () => {
+  const headings = Array.from(content.querySelectorAll("h2, h3"));
+  if (!headings.length) return;
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+
+      if (visible[0]?.target?.id) {
+        setActiveTocLink(visible[0].target.id);
+      }
+    },
+    {
+      rootMargin: "-24% 0px -68% 0px",
+      threshold: 0,
+    },
+  );
+
+  headings.forEach((heading) => observer.observe(heading));
+};
+
+const updateReadProgress = () => {
+  if (!readProgress) return;
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+  const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = scrollHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100)) : 0;
+  readProgress.style.transform = `scaleX(${progress / 100})`;
+};
+
+tocSearch?.addEventListener("input", filterToc);
+window.addEventListener("scroll", updateReadProgress, { passive: true });
+window.addEventListener("resize", updateReadProgress);
 
 fetch("README.md", { cache: "no-store" })
   .then((response) => {
@@ -192,6 +243,9 @@ fetch("README.md", { cache: "no-store" })
     const rendered = renderMarkdown(markdown);
     content.innerHTML = rendered.html;
     renderToc(rendered.headings);
+    filterToc();
+    observeHeadings();
+    updateReadProgress();
   })
   .catch(() => {
     content.innerHTML = '<p>README.md could not be loaded. Open the Markdown file directly from the toolbar.</p>';
