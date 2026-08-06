@@ -2,6 +2,23 @@ const content = document.getElementById("readme-content");
 const toc = document.getElementById("toc");
 const tocSearch = document.getElementById("toc-search");
 const readProgress = document.getElementById("read-progress");
+const currentYear = document.getElementById("current-year");
+const backToTop = document.querySelector(".back-to-top");
+
+if (currentYear) {
+  const year = String(new Date().getFullYear());
+  currentYear.textContent = year;
+  currentYear.setAttribute("datetime", year);
+}
+
+backToTop?.addEventListener("click", (event) => {
+  event.preventDefault();
+  document.documentElement.classList.add("no-smooth-scroll");
+  window.scrollTo(0, 0);
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove("no-smooth-scroll");
+  });
+});
 
 const escapeHtml = (value) =>
   value
