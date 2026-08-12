@@ -157,14 +157,6 @@ a {
   background: rgba(37, 99, 235, 0.85);
 }
 
-.site-header nav a:focus-visible,
-.button:focus-visible,
-.role-shortcuts a:focus-visible,
-.hero-scroll-hint:focus-visible {
-  outline: 3px solid rgba(253, 224, 71, 0.72);
-  outline-offset: 3px;
-}
-
 .site-header .nav-action,
 .button.primary {
   background: var(--yellow);
@@ -182,8 +174,8 @@ a {
   border-color: rgba(255, 255, 255, 0.72);
   color: #fff;
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .hero-meta {
@@ -241,10 +233,6 @@ a {
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
-}
-
-.hero .eyebrow {
-  color: var(--yellow);
 }
 
 h1,
@@ -506,7 +494,7 @@ h1 {
 .section-shell {
   width: min(1180px, calc(100% - 40px));
   margin: 0 auto;
-  padding: 72px 0;
+  padding: 78px 0;
 }
 
 .section-heading {
@@ -527,7 +515,7 @@ h1 {
 .feature-band,
 .docs-band {
   scroll-margin-top: var(--anchor-offset);
-  background: #f8fbff;
+  background: var(--soft);
   border-top: 1px solid var(--line);
 }
 
@@ -542,7 +530,7 @@ h1 {
   min-height: 230px;
   padding: 22px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--shadow);
   transition: transform 180ms ease, box-shadow 180ms ease;
@@ -560,7 +548,7 @@ h1 {
   width: 42px;
   height: 42px;
   margin-bottom: 24px;
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--primary);
   color: #fff;
   font-weight: 900;
@@ -608,7 +596,7 @@ h1 {
   min-height: 38px;
   padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--surface);
   color: var(--primary-deep);
   font-weight: 700;
@@ -627,7 +615,7 @@ h1 {
 .toc-panel,
 .readme-panel {
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -697,17 +685,6 @@ h1 {
 #toc a.active {
   background: var(--primary-deep);
   color: #fff;
-}
-
-#toc a[hidden] {
-  display: none;
-}
-
-.toc-empty {
-  margin: 12px 0 0;
-  color: var(--muted);
-  font-size: 0.84rem;
-  font-weight: 800;
 }
 
 #toc a.depth-3 {
@@ -785,7 +762,7 @@ h1 {
   -webkit-overflow-scrolling: touch;
   margin: 18px 0;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: #fff;
   box-shadow: var(--shadow);
   scrollbar-color: var(--primary) #dbeafe;
@@ -844,7 +821,7 @@ h1 {
   margin: 16px 0;
   padding: 16px;
   border: 1px solid #1e3a8a;
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: #172554;
   color: #eff6ff;
 }
@@ -953,6 +930,7 @@ h1 {
   .summary-grid,
   .split,
   .docs-layout,
+  .hero,
   .system-preview {
     grid-template-columns: 1fr;
   }
@@ -993,20 +971,7 @@ h1 {
 
   .hero {
     min-height: 0;
-    padding-top: 52px;
-    background-position: 58% center;
-  }
-
-  .hero-meta {
-    gap: 14px;
-  }
-
-  .hero-meta span {
-    min-width: 92px;
-  }
-
-  .preview-band {
-    padding-bottom: 54px;
+    padding-top: 34px;
   }
 
   .readme-toolbar {
