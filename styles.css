@@ -309,7 +309,7 @@ h1 {
 }
 
 .preview-band {
-  padding: 48px clamp(20px, 6vw, 72px) 72px;
+  padding: 96px clamp(20px, 6vw, 72px) 72px;
   background: #f8fbff;
   border-top: 1px solid rgba(191, 219, 254, 0.7);
   scroll-margin-top: var(--anchor-offset);
