@@ -1,6 +1,7 @@
 const content = document.getElementById("readme-content");
 const toc = document.getElementById("toc");
 const tocSearch = document.getElementById("toc-search");
+const tocEmpty = document.getElementById("toc-empty");
 const readProgress = document.getElementById("read-progress");
 const currentYear = document.getElementById("current-year");
 const backToTop = document.querySelector(".back-to-top");
@@ -202,15 +203,27 @@ const renderToc = (headings) => {
 
 const filterToc = () => {
   const query = (tocSearch?.value || "").trim().toLowerCase();
+  let visibleCount = 0;
   toc.querySelectorAll("a").forEach((link) => {
     const text = link.dataset.sectionText || "";
-    link.hidden = query && !text.includes(query);
+    const isHidden = Boolean(query && !text.includes(query));
+    link.hidden = isHidden;
+    if (!isHidden) visibleCount += 1;
   });
+  if (tocEmpty) {
+    tocEmpty.hidden = visibleCount > 0;
+  }
 };
 
 const setActiveTocLink = (id) => {
   toc.querySelectorAll("a").forEach((link) => {
-    link.classList.toggle("active", link.getAttribute("href") === `#${id}`);
+    const isActive = link.getAttribute("href") === `#${id}`;
+    link.classList.toggle("active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "true");
+    } else {
+      link.removeAttribute("aria-current");
+    }
   });
 };
 
