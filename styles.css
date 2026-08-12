@@ -309,7 +309,7 @@ h1 {
 }
 
 .preview-band {
-  padding: 0 clamp(20px, 6vw, 72px) 72px;
+  padding: 48px clamp(20px, 6vw, 72px) 72px;
   background: #f8fbff;
   border-top: 1px solid rgba(191, 219, 254, 0.7);
   scroll-margin-top: var(--anchor-offset);
@@ -320,7 +320,7 @@ h1 {
   grid-template-columns: minmax(205px, 0.35fr) minmax(0, 1fr);
   width: min(1180px, 100%);
   min-height: 520px;
-  margin: -44px auto 0;
+  margin: 0 auto;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius);
