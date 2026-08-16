@@ -857,7 +857,7 @@ h1 {
 .back-to-top {
   position: fixed;
   right: clamp(18px, 3vw, 34px);
-  bottom: calc(var(--footer-height) + 18px);
+  bottom: 18px;
   z-index: 30;
   display: inline-flex;
   align-items: center;
@@ -992,7 +992,7 @@ h1 {
 
   .back-to-top {
     right: 16px;
-    bottom: calc(var(--footer-height) + 12px);
+    bottom: 12px;
     width: 44px;
     height: 44px;
     font-size: 1.28rem;
