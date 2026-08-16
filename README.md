@@ -409,27 +409,27 @@ Some profile information is managed through **Manage Users** and may not appear 
 
 ## Common Issues
 
-### I cannot sign in.
+### I cannot sign in
 
 Check the username and password. If the problem continues, contact the administrator to verify that the account is active and assigned to the correct role.
 
-### I cannot see a page.
+### I cannot see a page
 
 The page may not be available for your role. Contact the administrator if your role or department assignment is wrong.
 
-### I cannot submit a task.
+### I cannot submit a task
 
 Check that the task is assigned to you, is active, and is not already completed or waiting for another approval step.
 
-### I cannot upload a file.
+### I cannot upload a file
 
 Check the file size, file type, and internet or local network connection. If the problem continues, contact the administrator.
 
-### A dashboard or report looks incomplete.
+### A dashboard or report looks incomplete
 
 Check the selected date, month, department, employee, year, period, and status filters. Filters can limit what appears on dashboards and reports.
 
-### Sync shows pending records.
+### Sync shows pending records
 
 The local system may be waiting for cloud connectivity. Continue local work if the office server is available, then run or wait for synchronization when the connection returns.
 
@@ -544,7 +544,7 @@ Railway is the intended hosted backend platform for Django.
 | Hosted cookies and CORS | `AUTH_COOKIE_SECURE`, `AUTH_COOKIE_SAME_SITE`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | Required for cookie-based auth between `portal.lgu-eptmis.com` and `api.lgu-eptmis.com`. |
 | Port | `8080` target on the Railway custom domain | The frontend docs assume the Railway backend custom domain targets port `8080`. |
 
-Railway SQLite is only an emergency startup fallback. For real production data, attach Railway PostgreSQL and point `DATABASE_URL` at the PostgreSQL service, not at the Django/API service.
+Railway SQLite is not enabled by default because its filesystem is ephemeral. For real production data, attach Railway PostgreSQL and point `DATABASE_URL` at the PostgreSQL service, not at the Django/API service. Set `ALLOW_SQLITE_ON_RAILWAY=True` only for a temporary diagnostic boot where data loss is acceptable.
 
 ### Database, Sync, and Storage Integrations
 
@@ -560,10 +560,14 @@ Railway SQLite is only an emergency startup fallback. For real production data, 
 Important sync settings:
 
 ```text
+SYNC_ENABLED=False
+SYNC_QUEUE_ENABLED=False
 SYNC_AUTO_START_ON_QUEUE=False
 SYNC_SCHEDULER_ENABLED=False
 SYNC_CLOUD_CONNECT_TIMEOUT_SECONDS=2
 SYNC_CLOUD_STATEMENT_TIMEOUT_MS=180000
+SYNC_CLOUD_UPLOAD_MAX_RETRIES=3
+SYNC_CLOUD_UPLOAD_RETRY_DELAY_SECONDS=0.25
 SYNC_HISTORY_MIRROR_BATCH_SIZE=50
 SYNC_HISTORY_MIRROR_MAX_RETRIES=3
 SYNC_HISTORY_MIRROR_RETRY_BACKOFF_SECONDS=1.0

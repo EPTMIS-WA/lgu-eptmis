@@ -2,6 +2,7 @@ const content = document.getElementById("readme-content");
 const toc = document.getElementById("toc");
 const tocSearch = document.getElementById("toc-search");
 const tocEmpty = document.getElementById("toc-empty");
+const tocPanel = document.querySelector(".toc-panel");
 const readProgress = document.getElementById("read-progress");
 const currentYear = document.getElementById("current-year");
 const backToTop = document.querySelector(".back-to-top");
@@ -35,6 +36,14 @@ const slugify = (value) =>
     .replace(/[`*_~]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+
+const normalizeSearchValue = (value) =>
+  value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 const renderInline = (value) => {
   let output = escapeHtml(value);
@@ -197,12 +206,15 @@ const renderMarkdown = (markdown) => {
 const renderToc = (headings) => {
   const visibleHeadings = headings.filter((heading) => heading.level === 2 || heading.level === 3);
   toc.innerHTML = visibleHeadings
-    .map((heading) => `<a class="depth-${heading.level}" href="#${heading.id}" data-section-text="${escapeHtml(heading.text.toLowerCase())}">${escapeHtml(heading.text)}</a>`)
+    .map((heading) => {
+      const searchableText = normalizeSearchValue(`${heading.text} ${heading.id.replace(/-/g, " ")}`);
+      return `<a class="depth-${heading.level}" href="#${heading.id}" data-section-text="${escapeHtml(searchableText)}">${escapeHtml(heading.text)}</a>`;
+    })
     .join("");
 };
 
 const filterToc = () => {
-  const query = (tocSearch?.value || "").trim().toLowerCase();
+  const query = normalizeSearchValue(tocSearch?.value || "");
   let visibleCount = 0;
   toc.querySelectorAll("a").forEach((link) => {
     const text = link.dataset.sectionText || "";
@@ -215,16 +227,37 @@ const filterToc = () => {
   }
 };
 
+const keepTocLinkInView = (link) => {
+  if (!tocPanel || !link || link.hidden) return;
+
+  const panelRect = tocPanel.getBoundingClientRect();
+  const linkRect = link.getBoundingClientRect();
+  const panelStyle = window.getComputedStyle(tocPanel);
+  const panelPaddingTop = parseFloat(panelStyle.paddingTop) || 0;
+  const panelPaddingBottom = parseFloat(panelStyle.paddingBottom) || 0;
+  const visibleTop = panelRect.top + panelPaddingTop;
+  const visibleBottom = panelRect.bottom - panelPaddingBottom;
+
+  if (linkRect.top < visibleTop) {
+    tocPanel.scrollTop -= visibleTop - linkRect.top;
+  } else if (linkRect.bottom > visibleBottom) {
+    tocPanel.scrollTop += linkRect.bottom - visibleBottom;
+  }
+};
+
 const setActiveTocLink = (id) => {
+  let activeLink = null;
   toc.querySelectorAll("a").forEach((link) => {
     const isActive = link.getAttribute("href") === `#${id}`;
     link.classList.toggle("active", isActive);
     if (isActive) {
+      activeLink = link;
       link.setAttribute("aria-current", "true");
     } else {
       link.removeAttribute("aria-current");
     }
   });
+  keepTocLinkInView(activeLink);
 };
 
 const observeHeadings = () => {
@@ -259,6 +292,7 @@ const updateReadProgress = () => {
 };
 
 tocSearch?.addEventListener("input", filterToc);
+tocSearch?.addEventListener("search", filterToc);
 window.addEventListener("scroll", updateReadProgress, { passive: true });
 window.addEventListener("resize", updateReadProgress);
 
