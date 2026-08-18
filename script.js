@@ -214,11 +214,12 @@ const renderToc = (headings) => {
 };
 
 const filterToc = () => {
+  if (!toc) return;
   const query = normalizeSearchValue(tocSearch?.value || "");
   let visibleCount = 0;
   toc.querySelectorAll("a").forEach((link) => {
     const text = link.dataset.sectionText || "";
-    const isHidden = Boolean(query && !text.includes(query));
+    const isHidden = query && !text.includes(query);
     link.hidden = isHidden;
     if (!isHidden) visibleCount += 1;
   });
