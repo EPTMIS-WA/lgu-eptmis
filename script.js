@@ -6,6 +6,7 @@ const tocPanel = document.querySelector(".toc-panel");
 const readProgress = document.getElementById("read-progress");
 const currentYear = document.getElementById("current-year");
 const backToTop = document.querySelector(".back-to-top");
+const readmeMetrics = document.querySelectorAll("[data-readme-metric]");
 
 if (currentYear) {
   const year = String(new Date().getFullYear());
@@ -59,6 +60,24 @@ const closeList = (state, html) => {
     state.listOpen = false;
     state.listType = "";
   }
+};
+
+const updateReadmeMetrics = (headings) => {
+  if (!readmeMetrics.length) return;
+
+  const sectionCount = headings.filter((heading) => heading.level === 2).length;
+  const roleCount = headings.filter((heading) => /guide$/i.test(heading.text)).length;
+  const values = {
+    "section-count": sectionCount || "--",
+    "role-count": roleCount || 4,
+  };
+
+  readmeMetrics.forEach((metric) => {
+    const key = metric.dataset.readmeMetric;
+    if (Object.prototype.hasOwnProperty.call(values, key)) {
+      metric.textContent = String(values[key]);
+    }
+  });
 };
 
 const isTableDivider = (line) =>
@@ -136,6 +155,12 @@ const renderMarkdown = (markdown) => {
       continue;
     }
 
+    if (/^\s*-{3,}\s*$/.test(line)) {
+      closeList(state, html);
+      html.push("<hr>");
+      continue;
+    }
+
     const nextLine = lines[index + 1] || "";
     if (line.trim().startsWith("|") && isTableDivider(nextLine)) {
       closeList(state, html);
@@ -171,6 +196,13 @@ const renderMarkdown = (markdown) => {
       continue;
     }
 
+    const blockquote = line.match(/^\s*>\s?(.+)$/);
+    if (blockquote) {
+      closeList(state, html);
+      html.push(`<blockquote><p>${renderInline(blockquote[1])}</p></blockquote>`);
+      continue;
+    }
+
     const bullet = line.match(/^\s*-\s+(.+)$/);
     if (bullet) {
       if (!state.listOpen || state.listType !== "ul") {
@@ -197,6 +229,10 @@ const renderMarkdown = (markdown) => {
 
     closeList(state, html);
     html.push(`<p>${renderInline(line.trim())}</p>`);
+  }
+
+  if (inCode) {
+    html.push(`<pre><code class="language-${escapeHtml(codeLanguage)}">${escapeHtml(codeBuffer.join("\n"))}</code></pre>`);
   }
 
   closeList(state, html);
@@ -308,6 +344,7 @@ fetch("README.md", { cache: "no-store" })
     const rendered = renderMarkdown(markdown);
     content.innerHTML = rendered.html;
     renderToc(rendered.headings);
+    updateReadmeMetrics(rendered.headings);
     filterToc();
     observeHeadings();
     updateReadProgress();

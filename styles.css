@@ -724,7 +724,10 @@ h1 {
 
 .markdown-body h1,
 .markdown-body h2,
-.markdown-body h3 {
+.markdown-body h3,
+.markdown-body h4 {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   scroll-margin-top: var(--anchor-offset);
 }
 
@@ -745,9 +748,18 @@ h1 {
   font-size: 1.18rem;
 }
 
+.markdown-body h4 {
+  margin: 24px 0 0;
+  color: var(--primary-deep);
+  font-size: 1.02rem;
+  font-weight: 900;
+}
+
 .markdown-body p,
 .markdown-body li {
   color: #354054;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .markdown-body ul,
@@ -755,8 +767,40 @@ h1 {
   padding-left: 1.35rem;
 }
 
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote {
+  max-width: 100%;
+}
+
 .markdown-body li + li {
   margin-top: 0.35rem;
+}
+
+.markdown-body blockquote {
+  margin: 18px 0;
+  padding: 12px 16px;
+  border-left: 4px solid var(--primary);
+  border-radius: 0 8px 8px 0;
+  background: #eff6ff;
+  color: var(--muted);
+}
+
+.markdown-body blockquote p {
+  margin: 0;
+}
+
+.markdown-body hr {
+  height: 1px;
+  margin: 28px 0;
+  border: 0;
+  background: var(--line);
+}
+
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
 }
 
 .table-wrap {
@@ -821,6 +865,7 @@ h1 {
 .markdown-body pre {
   overflow: auto;
   max-width: 100%;
+  width: 100%;
   margin: 16px 0;
   padding: 16px;
   border: 1px solid #1e3a8a;

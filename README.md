@@ -385,6 +385,10 @@ EPTMIS-WA can run in a local-first office setup. This means the local Django ser
 
 The browser must still be able to reach the local server to save work.
 
+For deployments where end users use the hosted web system and IT also runs a local maintenance deployment, the recommended model is different: both online deployments should use the same Railway PostgreSQL primary database. The local deployment may keep a refreshed local backup database for offline fallback, but that fallback is read-only by default. It is meant for viewing/exporting data while Railway is unavailable, not for creating records that later merge back into production.
+
+In the current offline-first fallback implementation, the local deployment can use `offline_backup.sqlite3` as its default outage database when `OFFLINE_FALLBACK_MODE=True`. While that mode is active, unsafe write requests are blocked by backend middleware unless they are explicitly allowed authentication paths. Refresh the fallback copy from Railway PostgreSQL while the network is healthy, then use fallback mode only when the shared primary database is unavailable.
+
 The sync or connectivity banner may show:
 
 - Whether the local API is reachable.
@@ -392,7 +396,7 @@ The sync or connectivity banner may show:
 - Whether there are pending sync records.
 - Whether manual or automatic synchronization is running.
 
-If the system is offline, continue using the local office portal when available. Pending records can synchronize when the cloud connection returns.
+If the system is offline in local-first mode, continue using the local office portal when available. Pending records can synchronize when the cloud connection returns. If the local deployment is running in offline fallback mode, data-changing actions are disabled until Railway PostgreSQL is available again.
 
 ## Account and Profile Settings
 
@@ -409,27 +413,27 @@ Some profile information is managed through **Manage Users** and may not appear 
 
 ## Common Issues
 
-### I cannot sign in
+### I cannot sign in.
 
 Check the username and password. If the problem continues, contact the administrator to verify that the account is active and assigned to the correct role.
 
-### I cannot see a page
+### I cannot see a page.
 
 The page may not be available for your role. Contact the administrator if your role or department assignment is wrong.
 
-### I cannot submit a task
+### I cannot submit a task.
 
 Check that the task is assigned to you, is active, and is not already completed or waiting for another approval step.
 
-### I cannot upload a file
+### I cannot upload a file.
 
 Check the file size, file type, and internet or local network connection. If the problem continues, contact the administrator.
 
-### A dashboard or report looks incomplete
+### A dashboard or report looks incomplete.
 
 Check the selected date, month, department, employee, year, period, and status filters. Filters can limit what appears on dashboards and reports.
 
-### Sync shows pending records
+### Sync shows pending records.
 
 The local system may be waiting for cloud connectivity. Continue local work if the office server is available, then run or wait for synchronization when the connection returns.
 
@@ -550,18 +554,21 @@ Railway SQLite is not enabled by default because its filesystem is ephemeral. Fo
 
 | Integration | Configuration | Purpose |
 | --- | --- | --- |
-| Local SQLite | Default local database | Keeps office-local operation available when optional cloud services are unavailable. |
+| Local SQLite | Default local database, or `local_backup` fallback database | Keeps office-local operation available when optional cloud services are unavailable. In shared-Railway-primary mode, it is a read-only offline fallback copy. |
 | Railway PostgreSQL | `DATABASE_URL` or split `PG*` variables | Primary persistent database for hosted Railway backend deployments. |
-| Supabase/PostgreSQL cloud sync database | `SUPABASE_DATABASE_URL`, `CLOUD_DATABASE_URL`, or split `SUPABASE_*` variables | Optional cloud database used by synchronization and connectivity checks. Do not put the Supabase sync URL in `DATABASE_URL` when Railway PostgreSQL is the primary database. |
+| Supabase/PostgreSQL cloud sync database | `SUPABASE_DATABASE_URL`, `CLOUD_DATABASE_URL`, or split `SUPABASE_*` variables | Optional backup/sync database used by synchronization and connectivity checks. This may point to Supabase or another PostgreSQL database. Do not confuse it with the shared Railway production `DATABASE_URL`. |
+| Local offline fallback database | `LOCAL_BACKUP_DATABASE_URL`, `OFFLINE_FALLBACK_DATABASE_URL`, or `LOCAL_BACKUP_SQLITE_PATH` | Local backup database refreshed from the current primary database by `refresh_local_backup`. Used when local IT needs read-only access during Railway outages. |
 | Supabase Realtime | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, realtime `VITE_*` variables | Optional browser-side broadcast listener that can trigger sync refreshes. |
-| S3-compatible media storage | `USE_S3_MEDIA_STORAGE=True`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT_URL`, `AWS_STORAGE_BUCKET_NAME`, `AWS_QUERYSTRING_AUTH` | Optional storage for uploaded task files, task template files, and system assets. Works with Railway Buckets or Supabase Storage S3-style endpoints. |
+| S3-compatible media storage | `USE_S3_MEDIA_STORAGE=True`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT_URL`, `AWS_STORAGE_BUCKET_NAME`, `AWS_QUERYSTRING_AUTH` | Optional storage for uploaded task files, task template files, and system assets. Works with Railway Buckets or Supabase Storage S3-style endpoints. For Railway Buckets, `AWS_STORAGE_BUCKET_NAME` must be the generated S3 bucket name from the bucket credentials, not merely the Railway resource/service name. |
 | Offline media sync | `SYNC_OFFLINE_MEDIA_SUBDIRS=task_files,task_template_files,system` | Controls which local media folders are synchronized to or from cloud storage. |
 
 Important sync settings:
 
 ```text
-SYNC_ENABLED=False
-SYNC_QUEUE_ENABLED=False
+SYNC_ENABLED=True
+SYNC_QUEUE_ENABLED=True
+SYNC_BACKUP_ONLY=True
+SYNC_ALLOW_RESTORE_FROM_CLOUD=False
 SYNC_AUTO_START_ON_QUEUE=False
 SYNC_SCHEDULER_ENABLED=False
 SYNC_CLOUD_CONNECT_TIMEOUT_SECONDS=2
@@ -571,7 +578,108 @@ SYNC_CLOUD_UPLOAD_RETRY_DELAY_SECONDS=0.25
 SYNC_HISTORY_MIRROR_BATCH_SIZE=50
 SYNC_HISTORY_MIRROR_MAX_RETRIES=3
 SYNC_HISTORY_MIRROR_RETRY_BACKOFF_SECONDS=1.0
+SYNC_FROM_CLOUD_STRATEGY=incremental
 ```
+
+For Railway web deployments, use `python manage.py backup_to_cloud --skip-media` to upload the current Railway primary database into the configured cloud backup database. To intentionally replace Railway records from Supabase, run `python manage.py restore_from_cloud --confirm --force --skip-media`; it purges sync-managed primary records and restores from the backup database in one transaction. Use `sync_from_cloud --force` only for a non-purging repair restore.
+
+Shared Railway primary with local offline fallback:
+
+```text
+# Local IT deployment, normal online mode.
+# Use Railway PostgreSQL through the public database URL.
+DATABASE_URL=<Railway DATABASE_PUBLIC_URL>
+SYNC_ENABLED=False
+SYNC_QUEUE_ENABLED=False
+LOCAL_BACKUP_SQLITE_PATH=offline_backup.sqlite3
+OFFLINE_FALLBACK_MODE=False
+
+# Refresh the local fallback copy while normal online mode is active
+python manage.py refresh_local_backup --source default --target local_backup --prune
+
+# Local IT deployment, outage/fallback mode
+OFFLINE_FALLBACK_MODE=True
+OFFLINE_FALLBACK_READ_ONLY=True
+
+# Local fallback refresh mode.
+# In this mode, default is offline_backup.sqlite3 and cloud points to Railway.
+LOCAL_BACKUP_SQLITE_PATH=offline_backup.sqlite3
+SYNC_FROM_CLOUD_STRATEGY=refresh_local_backup
+CLOUD_DATABASE_URL=<Railway DATABASE_PUBLIC_URL>
+CLOUD_DATABASE_SSLMODE=require
+CLOUD_DATABASE_SSL_REQUIRE=True
+python manage.py sync_from_cloud --skip-media
+```
+
+In this model, `DATABASE_URL` is the shared Railway production database during normal local operation. The `local_backup` alias is refreshed from that primary database for outage access. When `OFFLINE_FALLBACK_MODE=True`, Django switches the default database to the local backup and the middleware blocks data-changing requests so the fallback copy does not diverge from Railway.
+
+For local IT deployments that use Railway Bucket media, keep ordinary uploads local and use the S3-compatible credentials only for explicit media sync:
+
+```text
+USE_S3_MEDIA_STORAGE=False
+AWS_ACCESS_KEY_ID=<Railway bucket access key id>
+AWS_SECRET_ACCESS_KEY=<Railway bucket secret access key>
+AWS_S3_ENDPOINT_URL=<Railway bucket endpoint>
+AWS_STORAGE_BUCKET_NAME=<Railway generated bucket name>
+AWS_S3_REGION_NAME=auto
+AWS_S3_ADDRESSING_STYLE=virtual
+SYNC_OFFLINE_MEDIA_SUBDIRS=task_files,task_template_files,system
+```
+
+On the Railway web API service, `USE_S3_MEDIA_STORAGE=True` is appropriate so uploaded media is stored directly in the bucket. Railway variable references such as `${{media.ACCESS_KEY_ID}}` and `${{media.BUCKET}}` resolve only inside Railway. Local `.env` files must contain the actual values from `railway bucket credentials --bucket <bucket-resource-name> --json`. Do not publish those values.
+
+Use these commands for local refreshes:
+
+```text
+# Database only
+python manage.py sync_from_cloud --skip-media
+
+# Check bucket access and missing files without writing media
+python manage.py download_cloud_media --dry-run
+
+# Database plus media
+python manage.py sync_from_cloud
+```
+
+For periodic local backup refresh, schedule `python manage.py sync_from_cloud --skip-media` with Windows Task Scheduler or another host scheduler. A three-hour interval is a practical default for office fallback freshness without constant Railway public-proxy traffic. Use a shorter interval only when IT needs fresher outage reports, and keep media downloads manual or less frequent unless uploaded files must be available offline immediately.
+
+Offline-first replication is not implemented as a writable failover path: if users create or edit records while disconnected, the system does not automatically merge those local changes back into Railway. Building that would require explicit conflict rules, deleted-row handling, audit ownership, media reconciliation, and approval from the system owner before enabling writes in fallback mode.
+
+Current sync-tracked business models cover all backend business apps except the synchronization internals. The tracked set includes:
+
+```text
+api.SystemSettings
+authentication.Users
+authentication.OTPCode
+department.Department
+employee.Employee
+employee.PlantillaTitle
+ipcr.IPCRRatingPeriod
+ipcr.IPCRFunctionCategory
+ipcr.IPCRTemplate
+ipcr.IPCRForm
+ipcr.IPCRFunction
+ipcr.IPCRFunctionRating
+ipcr.IPCRAttachment
+ipcr.IPCRSignoff
+ipcr.IPCRComment
+ipcr.IPCRTaskNotification
+ipcr.IPCRAuditLog
+notification.AccountNotification
+notification.TaskNotification
+task.Task
+task.TaskPrerequisite
+task.TaskAssignment
+task.TaskFile
+task.TaskAuditLog
+task.TaskReplacedAssignee
+task.TaskTemplate
+task.TaskTemplateFile
+task.TaskTemplateTask
+task.TaskTemplateAuditLog
+```
+
+`synchronization.SyncRecord`, `synchronization.SyncLog`, and `synchronization.SyncLock` are intentionally not normal sync-tracked business records. Queue records, sync logs, and lock rows are operational metadata; mirroring or copying them as application data can create stale locks, duplicate queue work, or feedback loops.
 
 ### Email Integration
 
@@ -608,7 +716,7 @@ EPTMIS-WA is built for LGU offices that need one accountable place for employee 
 
 The system has a React/Vite frontend and a Django REST Framework backend. The frontend provides role-based dashboards, task screens, reports, notifications, and IPCR workspaces. The backend manages authentication, permissions, task workflow rules, IPCR workflow rules, audit logs, notifications, file uploads, and local-to-cloud synchronization.
 
-The default operating model is local-first. The application can run on an office server with SQLite for local use, while optional PostgreSQL/Supabase synchronization and S3-compatible media storage can support cloud backup and media transfer.
+The default operating model can be local-first for office-only deployments, or shared-Railway-primary for hosted deployments with local IT maintenance. In shared-Railway-primary mode, the local deployment uses Railway PostgreSQL while online and keeps a read-only local fallback database for outage viewing/export.
 
 Hosted deployment uses the public frontend at:
 
