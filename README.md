@@ -35,6 +35,34 @@ https://portal.lgu-eptmis.com
 
 For local office deployments, use the local address provided by the system administrator.
 
+### Local Deployment Setup Package
+
+For faster local-unit deployment without npm, use the prepared `LGU-EPTMIS-Setup` folder. Copy the whole folder to the target computer; do not copy only `setup.exe`.
+
+```text
+LGU-EPTMIS-Setup/
+  setup.exe
+  SetupFiles/
+  Application/
+    frontend/
+      dist/
+    backend2/
+```
+
+`setup.exe` is the installer launcher. `SetupFiles` contains the installer payload, including Python 3.12.10 and the offline Python packages used by `backend2/requirements.txt`, including Waitress. `Application` contains the deployable app files: the built frontend in `frontend/dist`, the Django backend in `backend2`, and the local built-frontend server.
+
+Run `LGU-EPTMIS-Setup/setup.exe` on the target unit. The setup creates `Application/backend2/.venv`, installs backend dependencies from `SetupFiles/payload`, runs backend checks and migrations, and creates local start launchers inside `Application`.
+
+After setup finishes, use the generated `Application/start-built-app.cmd` to start the local backend and the built frontend together. The local backend runs through Waitress on port `8000`, and the built frontend opens at:
+
+```text
+http://localhost:4173/login
+```
+
+The folder `installer/local-backend` is not the deployment package. It is the builder/source folder used by developers to regenerate `LGU-EPTMIS-Setup`.
+
+The packaged local `.env` is intentionally sanitized for local SQLite and Waitress use. Live cloud credentials, production API keys, media files, and production database secrets must not be bundled into the setup folder.
+
 ### Sign In
 
 1. Open the login page.
