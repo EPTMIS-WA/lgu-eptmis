@@ -51,9 +51,9 @@ LGU-EPTMIS-Setup/
 
 `setup.exe` is the installer launcher. `SetupFiles` contains the installer payload, including Python 3.12.10 and the offline Python packages used by `backend2/requirements.txt`, including Waitress. `Application` contains the deployable app files: the built frontend in `frontend/dist`, the Django backend in `backend2`, and the local built-frontend server.
 
-Run `LGU-EPTMIS-Setup/setup.exe` on the target unit. The setup creates `Application/backend2/.venv`, installs backend dependencies from `SetupFiles/payload`, runs backend checks and migrations, and creates local start launchers inside `Application`.
+Run `LGU-EPTMIS-Setup/setup.exe` on the target unit. The setup requests administrator permission, creates `Application/backend2/.venv`, installs backend dependencies from `SetupFiles/payload`, runs backend checks and migrations, installs or updates the `EPTMISDjangoBackend` Windows service with automatic startup, starts the service, and creates local launchers inside `Application`.
 
-After setup finishes, use the generated `Application/start-built-app.cmd` to start the local backend and the built frontend together. The local backend runs through Waitress on port `8000`, and the built frontend opens at:
+After setup finishes, the local backend runs automatically through Waitress on port `8000`. Use the generated `Application/start-built-app.cmd` to open the built frontend at:
 
 ```text
 http://localhost:4173/login
