@@ -77,6 +77,14 @@ If the login fails, check that the username and password are correct. If the acc
 
 Use the account menu or logout button before leaving a shared workstation.
 
+### Session Security and Automatic Logout
+
+EPTMIS-WA allows only one active browser session per account. If the same account is already active on another browser or device, a second login is rejected with HTTP `409` and the login page shows an **Account Already Logged In** dialog. The first session must log out, close, or expire before another browser can sign in.
+
+While an EPTMIS browser is open, the frontend sends a presence heartbeat every 30 seconds. If all EPTMIS tabs or the browser are closed, the heartbeat stops and the backend releases the abandoned login after approximately two minutes by default. This browser-presence timeout is controlled by `AUTH_SESSION_HEARTBEAT_TIMEOUT_SECONDS`.
+
+Genuine keyboard, pointer, touch, scroll, and focus activity is tracked separately from background requests. After **30 minutes of inactivity**, the frontend calls the backend idle-logout endpoint, the backend invalidates the active session, local authentication state is cleared, and the browser is redirected to `/login?reason=idle`. The login page then displays a **Session Expired** dialog. Background sync and passive API traffic do not reset the AFK timer. The backend idle timeout is controlled by `AUTH_SESSION_IDLE_TIMEOUT_SECONDS`; the frontend default is controlled by `VITE_SESSION_IDLE_TIMEOUT_MS`.
+
 ## Quick Start by Role
 
 Use this section when you only need to know where to begin.
@@ -231,6 +239,14 @@ Admins can review organization-wide tasks, progress, approvals, and audit trails
 ### Manage IPCR Periods and Audit
 
 Admins open IPCR rating periods and handle the HRMO-style audit stage before forms move to executive approval.
+
+### Manual Database Backup
+
+Admin accounts have an additional **Database Backup** panel in **Settings**. Select **Save Database Backup** to open the browser/operating-system **Save As** dialog. The administrator chooses the destination folder and file name before the backend generates the backup; the feature does not start an automatic download.
+
+The manual backup endpoint is Admin-only. Django creates a verified SQLite snapshot using SQLite's native backup API, validates the generated file with `PRAGMA quick_check`, streams the `.sqlite3` file to the browser, and removes the temporary server-side copy after the response is closed. If the active default database is PostgreSQL, EPTMIS uses the configured local SQLite backup database when available and can initialize it through `refresh_local_backup`. If no usable persistent SQLite source is configured, the endpoint returns a conflict response instead of producing a misleading backup.
+
+The native **Save As** workflow uses `showSaveFilePicker()`. Current desktop Chrome and Microsoft Edge support it in secure contexts such as HTTPS and `http://localhost`. If the browser does not expose the File System Access API, EPTMIS shows an explanatory error instead of silently downloading the backup.
 
 ## Mayor Guide
 
@@ -395,6 +411,10 @@ Report access is role-scoped:
 - Employees can review personal accomplishment reports and IPCR reports exposed to their account.
 - Productivity reports are limited to Admin, Mayor, and Department Head accounts.
 
+### Official PDF Report Header
+
+Accomplishment and productivity exports render the Municipality of Luna official masthead and logos **inside the generated PDF only**. The normal report page UI keeps a standard on-screen title and does not duplicate the government letterhead. The backend resolves the report logos from runtime media first and then bundled backend/frontend assets so the header continues to render in local `LGU-EPTMIS-Setup` deployments.
+
 ## Notifications
 
 Notifications alert users about important system events, including:
@@ -437,6 +457,8 @@ Depending on role permissions, settings may include:
 - Password change.
 - Display preferences.
 - System logo or organization settings.
+- Admin-only manual SQLite database backup with a native **Save As** destination picker.
+- Login security controls, including single-session enforcement and automatic 30-minute inactivity logout.
 
 Some profile information is managed through **Manage Users** and may not appear in settings for management roles.
 
@@ -444,7 +466,19 @@ Some profile information is managed through **Manage Users** and may not appear 
 
 ### I cannot sign in.
 
-Check the username and password. If the problem continues, contact the administrator to verify that the account is active and assigned to the correct role.
+Check the username and password. If the problem continues, contact the administrator to verify that the account is active and assigned to the correct role. If the login page shows **Account Already Logged In**, the same account still has an active session on another browser or device; log out there or wait for the abandoned-browser session to expire.
+
+### I was returned to the login page while the system was open.
+
+EPTMIS automatically logs out an authenticated user after 30 minutes without genuine user activity. A **Session Expired** dialog appears on the login page after an AFK logout. Sign in again to continue.
+
+### The Database Backup button says Save As is unsupported.
+
+Use a current desktop version of Chrome or Microsoft Edge and open the local deployment through `http://localhost:4173` or an HTTPS origin. Insecure LAN origins such as plain `http://192.168.x.x` may not expose the browser File System Access API required for the native Save As picker.
+
+### The Database Backup button cannot create a backup.
+
+Manual database backup requires a persistent SQLite source. In normal local SQLite mode, EPTMIS backs up the active default database. In shared-Railway-primary mode, confirm that `local_backup` points to a persistent SQLite file and can be refreshed from the primary database.
 
 ### I cannot see a page.
 
@@ -487,7 +521,7 @@ The Django backend exposes the main API under `/api/`.
 
 | API Area | Endpoint Family | Purpose |
 | --- | --- | --- |
-| Authentication | `/api/auth/` | Login, logout, token refresh, current user, password reset, password change, email change, and admin account creation. |
+| Authentication | `/api/auth/` | Login, single-active-session enforcement, session heartbeat, idle logout, logout, token refresh, current user, password reset, password change, email change, and admin account creation. |
 | Users | `/api/users/` | User account listing, editing, default password reset, and account email-change actions. |
 | Employees | `/api/employees/` | Employee profile records used by task assignment, dashboards, reports, and IPCR. |
 | Plantilla titles | `/api/plantilla-titles/` | Position/title lookup and maintenance. |
@@ -502,11 +536,11 @@ The Django backend exposes the main API under `/api/`.
 | IPCR templates | `/api/ipcr-templates/` | IPCR template records. |
 | IPCR periods | `/api/ipcr-rating-periods/` | Rating period records and period close action. |
 | IPCR categories | `/api/ipcr-function-categories/` | Read-only IPCR function category lookup. |
-| System settings | `/api/system-settings/` | Current system settings, login options, organization logo, and email logo URL support. |
+| System settings | `/api/system-settings/` | Current system settings, login options, organization logo, email logo URL support, and Admin-only manual SQLite database backup. |
 | Feedback email | `/api/emails/send-feedback/` | Sends feedback or support email through the configured email backend. |
 | Health and sync | `/api/healthz/`, `/api/health/`, `/api/connectivity/`, `/api/sync/`, `/api/sync/employee/`, `/api/sync/admin/`, `/api/sync/pending/`, `/api/sync/status/` | Deployment health checks, connectivity checks, pending sync counts, and manual/background synchronization. |
 
-Authentication uses JWT with HTTP-only cookies. Hosted cross-domain deployments must keep `AUTH_COOKIE_SECURE=True`, `AUTH_COOKIE_SAME_SITE=None`, `CORS_ALLOWED_ORIGINS=https://portal.lgu-eptmis.com`, and `CSRF_TRUSTED_ORIGINS=https://portal.lgu-eptmis.com`.
+Authentication uses JWT with HTTP-only cookies. Single-session browser presence defaults to 120 seconds (`AUTH_SESSION_HEARTBEAT_TIMEOUT_SECONDS=120`) and AFK expiration defaults to 1800 seconds (`AUTH_SESSION_IDLE_TIMEOUT_SECONDS=1800`). Hosted cross-domain deployments must keep `AUTH_COOKIE_SECURE=True`, `AUTH_COOKIE_SAME_SITE=None`, `CORS_ALLOWED_ORIGINS=https://portal.lgu-eptmis.com`, and `CSRF_TRUSTED_ORIGINS=https://portal.lgu-eptmis.com`.
 
 ### Frontend API Settings
 
@@ -520,6 +554,8 @@ VITE_NETWORK_API_URL=
 VITE_API_TIMEOUT_MS=30000
 VITE_SYNC_STATUS_TIMEOUT_MS=120000
 VITE_SYNC_REQUEST_TIMEOUT_MS=60000
+VITE_SESSION_HEARTBEAT_INTERVAL_MS=30000
+VITE_SESSION_IDLE_TIMEOUT_MS=1800000
 ```
 
 Supabase Realtime support is optional and uses:
@@ -743,7 +779,7 @@ GitHub Pages is used for the public documentation landing site at `https://lgu-e
 
 EPTMIS-WA is built for LGU offices that need one accountable place for employee assignments, department task coordination, progress evidence, approval history, accomplishment reporting, and IPCR evaluation.
 
-The system has a React/Vite frontend and a Django REST Framework backend. The frontend provides role-based dashboards, task screens, reports, notifications, and IPCR workspaces. The backend manages authentication, permissions, task workflow rules, IPCR workflow rules, audit logs, notifications, file uploads, and local-to-cloud synchronization.
+The system has a React/Vite frontend and a Django REST Framework backend. The frontend provides role-based dashboards, task screens, reports, notifications, IPCR workspaces, single-session/AFK logout UX, and Admin-only manual database-backup controls. The backend manages authentication, session presence, permissions, task workflow rules, IPCR workflow rules, audit logs, notifications, file uploads, official PDF report generation, and local-to-cloud synchronization.
 
 The default operating model can be local-first for office-only deployments, or shared-Railway-primary for hosted deployments with local IT maintenance. In shared-Railway-primary mode, the local deployment uses Railway PostgreSQL while online and keeps a read-only local fallback database for outage viewing/export.
 
