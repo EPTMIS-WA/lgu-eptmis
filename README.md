@@ -434,9 +434,9 @@ EPTMIS-WA can run in a local-first office setup. This means the local Django ser
 
 The browser must still be able to reach the local server to save work.
 
-For deployments where end users use the hosted web system and IT also runs a local maintenance deployment, the recommended model is different: both online deployments should use the same Railway PostgreSQL primary database. The local deployment may keep a refreshed local backup database for offline fallback, but that fallback is read-only by default. It is meant for viewing/exporting data while Railway is unavailable, not for creating records that later merge back into production.
+For deployments where end users use the hosted web system and IT also runs a local maintenance deployment, the recommended model is different: both online deployments should use the same Railway PostgreSQL primary database. The local deployment may keep a refreshed local backup database for offline fallback, but that fallback is read-only. It is meant for viewing/exporting data while Railway is unavailable, not for creating records that later merge back into production.
 
-In the current offline-first fallback implementation, the local deployment can use `offline_backup.sqlite3` as its default outage database when `OFFLINE_FALLBACK_MODE=True`. While that mode is active, unsafe write requests are blocked by backend middleware unless they are explicitly allowed authentication paths. Refresh the fallback copy from Railway PostgreSQL while the network is healthy, then use fallback mode only when the shared primary database is unavailable.
+In the current read-only fallback implementation, the local deployment can use `offline_backup.sqlite3` as its default outage database when `OFFLINE_FALLBACK_MODE=True`. While that mode is active, unsafe write requests are blocked by backend middleware unless they are explicitly allowed authentication paths. Refresh the fallback copy from Railway PostgreSQL while the network is healthy, then use fallback mode only when the shared primary database is unavailable.
 
 The sync or connectivity banner may show:
 
@@ -665,18 +665,9 @@ python manage.py refresh_local_backup --source default --target local_backup --p
 # Local IT deployment, outage/fallback mode
 OFFLINE_FALLBACK_MODE=True
 OFFLINE_FALLBACK_READ_ONLY=True
-
-# Local fallback refresh mode.
-# In this mode, default is offline_backup.sqlite3 and cloud points to Railway.
-LOCAL_BACKUP_SQLITE_PATH=offline_backup.sqlite3
-SYNC_FROM_CLOUD_STRATEGY=refresh_local_backup
-CLOUD_DATABASE_URL=<Railway DATABASE_PUBLIC_URL>
-CLOUD_DATABASE_SSLMODE=require
-CLOUD_DATABASE_SSL_REQUIRE=True
-python manage.py sync_from_cloud --skip-media
 ```
 
-In this model, `DATABASE_URL` is the shared Railway production database during normal local operation. The `local_backup` alias is refreshed from that primary database for outage access. When `OFFLINE_FALLBACK_MODE=True`, Django switches the default database to the local backup and the middleware blocks data-changing requests so the fallback copy does not diverge from Railway.
+In this model, `DATABASE_URL` is the shared Railway production database during normal local operation. The `local_backup` alias is refreshed from that primary database for outage access. When `OFFLINE_FALLBACK_MODE=True`, Django switches the default database to the local SQLite backup and the middleware blocks data-changing requests so the fallback copy does not diverge from Railway. Do not enable fallback mode on Railway itself.
 
 For local IT deployments that use Railway Bucket media, keep ordinary uploads local and use the S3-compatible credentials only for explicit media sync:
 
@@ -693,22 +684,23 @@ SYNC_OFFLINE_MEDIA_SUBDIRS=task_files,task_template_files,system
 
 On the Railway web API service, `USE_S3_MEDIA_STORAGE=True` is appropriate so uploaded media is stored directly in the bucket. Railway variable references such as `${{media.ACCESS_KEY_ID}}` and `${{media.BUCKET}}` resolve only inside Railway. Local `.env` files must contain the actual values from `railway bucket credentials --bucket <bucket-resource-name> --json`. Do not publish those values.
 
-Use these commands for local refreshes:
+Use these commands for intentional local fallback refreshes:
 
 ```text
-# Database only
-python manage.py sync_from_cloud --skip-media
+# Database only, run only while normal online mode is active
+python manage.py refresh_local_backup --source default --target local_backup --prune
 
 # Check bucket access and missing files without writing media
 python manage.py download_cloud_media --dry-run
 
-# Database plus media
-python manage.py sync_from_cloud
+# Refresh database, then download media intentionally
+python manage.py refresh_local_backup --source default --target local_backup --prune
+python manage.py download_cloud_media
 ```
 
-For periodic local backup refresh, schedule `python manage.py sync_from_cloud --skip-media` with Windows Task Scheduler or another host scheduler. A three-hour interval is a practical default for office fallback freshness without constant Railway public-proxy traffic. Use a shorter interval only when IT needs fresher outage reports, and keep media downloads manual or less frequent unless uploaded files must be available offline immediately.
+Refresh `local_backup` deliberately before planned maintenance, before storm/outage windows, or whenever IT accepts the freshness tradeoff. Avoid automatic refresh jobs that can make stale local data look current without an operator noticing. Keep media downloads manual or separately reviewed unless uploaded files must be available during an outage.
 
-Offline-first replication is not implemented as a writable failover path: if users create or edit records while disconnected, the system does not automatically merge those local changes back into Railway. Building that would require explicit conflict rules, deleted-row handling, audit ownership, media reconciliation, and approval from the system owner before enabling writes in fallback mode.
+Full offline mode is not implemented as a writable failover path: if users create or edit records while disconnected, the system does not automatically merge those local changes back into Railway. Building that would require explicit conflict rules, deleted-row handling, audit ownership, media reconciliation, and approval from the system owner before enabling writes in fallback mode.
 
 Current sync-tracked business models cover all backend business apps except the synchronization internals. The tracked set includes:
 
