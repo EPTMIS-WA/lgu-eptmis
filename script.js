@@ -69,7 +69,7 @@ const updateReadmeMetrics = (headings) => {
   const roleCount = headings.filter((heading) => /guide$/i.test(heading.text)).length;
   const values = {
     "section-count": sectionCount || "--",
-    "role-count": roleCount || 4,
+    "role-count": roleCount || 5,
   };
 
   readmeMetrics.forEach((metric) => {

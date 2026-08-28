@@ -1,8 +1,8 @@
-# EPTMIS-WA User Manual
+# EPTMIS-WA Guide
 
 Employee Progress Tracking Management Information System, or EPTMIS-WA, is the official web application for tracking LGU employee assignments, department workflows, task approvals, accomplishment reports, and Individual Performance Commitment and Review (IPCR) records.
 
-This manual explains how each user role should use the system during daily operations.
+This guide explains how each user role should use the system during daily operations.
 
 ## Table of Contents
 
@@ -62,7 +62,45 @@ http://localhost:4173/login
 
 The folder `installer/local-backend` is not the deployment package. It is the builder/source folder used by developers to regenerate `LGU-EPTMIS-Setup`.
 
-The packaged local `.env` is intentionally sanitized for local SQLite and Waitress use. Live cloud credentials, production API keys, media files, and production database secrets must not be bundled into the setup folder.
+For Linux local deployments, use the prepared `LGU-EPTMIS-Linux-Setup` folder instead of the Windows `setup.exe` package. It includes Bash entrypoints:
+
+```text
+LGU-EPTMIS-Linux-Setup/
+  install.sh
+  open-lgu-eptmis.sh
+  stop-lgu-eptmis.sh
+  status.sh
+  doctor.sh
+  systemd-uninstall.sh
+  SetupFiles/
+  Application/
+```
+
+Run `bash install.sh` from inside `LGU-EPTMIS-Linux-Setup` on the Linux target. The Linux setup uses Python 3.12, creates `Application/backend2/.venv`, installs backend dependencies through pip or an optional Linux-compatible `SetupFiles/wheelhouse`, runs backend checks and migrations, and launches the built frontend at `http://localhost:4173/login`. Use `bash install.sh --install-systemd --desktop-entry` when the target desktop supports per-user systemd services and desktop application entries. Use `bash doctor.sh` for setup diagnostics.
+
+For macOS local deployments, use `LGU-EPTMIS-macOS-Setup`. It includes Terminal scripts and Finder-friendly `.command` launchers:
+
+```text
+LGU-EPTMIS-macOS-Setup/
+  Install LGU EPTMIS.command
+  Open LGU EPTMIS.command
+  Repair LGU EPTMIS.command
+  Uninstall LGU EPTMIS.command
+  install.sh
+  open-lgu-eptmis.sh
+  stop-lgu-eptmis.sh
+  status.sh
+  doctor.sh
+  repair.sh
+  uninstall.sh
+  launchd-uninstall.sh
+  SetupFiles/
+  Application/
+```
+
+Run `bash install.sh --install-launchd --desktop-shortcut` from inside `LGU-EPTMIS-macOS-Setup`, or double-click `Install LGU EPTMIS.command`. The macOS setup uses Python 3.12, creates `Application/backend2/.venv`, installs backend dependencies through pip or an optional macOS-compatible `SetupFiles/wheelhouse`, runs backend checks and migrations, installs per-user LaunchAgents, creates a local `LGU EPTMIS.app`, copies it to the Desktop, and opens the built frontend at `http://localhost:4173/login`. Use `bash doctor.sh` for setup diagnostics, `bash repair.sh` to reinstall services/launchers, and `bash uninstall.sh` to remove macOS local services and launchers.
+
+The packaged local `.env` files are intentionally sanitized for local SQLite use. The Windows setup runs Waitress; the Linux and macOS setup folders run Gunicorn. Live cloud credentials, production API keys, media files, and production database secrets must not be bundled into any setup folder.
 
 ### Sign In
 
@@ -79,7 +117,7 @@ Use the account menu or logout button before leaving a shared workstation.
 
 ### Session Security and Automatic Logout
 
-EPTMIS-WA allows only one active browser session per account. If the same account is already active on another browser or device, a second login is rejected with HTTP `409` and the login page shows an **Account Already Logged In** dialog. The first session must log out, close, or expire before another browser can sign in.
+EPTMIS-WA allows only one active browser session per account by default. This is controlled by `AUTH_SINGLE_ACTIVE_SESSION=True`. If the same account is already active on another browser or device, a second login is rejected with HTTP `409` and the login page shows an **Account Already Logged In** dialog. Set `AUTH_SINGLE_ACTIVE_SESSION=False` to allow multiple browsers or devices to sign in to the same account, matching the older multi-login behavior.
 
 While an EPTMIS browser is open, the frontend sends a presence heartbeat every 30 seconds. If all EPTMIS tabs or the browser are closed, the heartbeat stops and the backend releases the abandoned login after approximately two minutes by default. This browser-presence timeout is controlled by `AUTH_SESSION_HEARTBEAT_TIMEOUT_SECONDS`.
 
@@ -540,7 +578,7 @@ The Django backend exposes the main API under `/api/`.
 | Feedback email | `/api/emails/send-feedback/` | Sends feedback or support email through the configured email backend. |
 | Health and sync | `/api/healthz/`, `/api/health/`, `/api/connectivity/`, `/api/sync/`, `/api/sync/employee/`, `/api/sync/admin/`, `/api/sync/pending/`, `/api/sync/status/` | Deployment health checks, connectivity checks, pending sync counts, and manual/background synchronization. |
 
-Authentication uses JWT with HTTP-only cookies. Single-session browser presence defaults to 120 seconds (`AUTH_SESSION_HEARTBEAT_TIMEOUT_SECONDS=120`) and AFK expiration defaults to 1800 seconds (`AUTH_SESSION_IDLE_TIMEOUT_SECONDS=1800`). Hosted cross-domain deployments must keep `AUTH_COOKIE_SECURE=True`, `AUTH_COOKIE_SAME_SITE=None`, `CORS_ALLOWED_ORIGINS=https://portal.lgu-eptmis.com`, and `CSRF_TRUSTED_ORIGINS=https://portal.lgu-eptmis.com`.
+Authentication uses JWT with HTTP-only cookies. Single-session enforcement defaults to enabled (`AUTH_SINGLE_ACTIVE_SESSION=True`), browser presence defaults to 120 seconds (`AUTH_SESSION_HEARTBEAT_TIMEOUT_SECONDS=120`), and AFK expiration defaults to 1800 seconds (`AUTH_SESSION_IDLE_TIMEOUT_SECONDS=1800`). Set `AUTH_SINGLE_ACTIVE_SESSION=False` to allow multiple simultaneous logins for one account. Hosted cross-domain deployments must keep `AUTH_COOKIE_SECURE=True`, `AUTH_COOKIE_SAME_SITE=None`, `CORS_ALLOWED_ORIGINS=https://portal.lgu-eptmis.com`, and `CSRF_TRUSTED_ORIGINS=https://portal.lgu-eptmis.com`.
 
 ### Frontend API Settings
 
@@ -572,7 +610,7 @@ VITE_SUPABASE_REALTIME_RECONNECT_MAX_MS=60000
 
 ### Cloudflare Integration
 
-Cloudflare can be used for the public frontend, API proxying, DNS, and analytics.
+Cloudflare can be used for the public frontend, API proxying, DNS, analytics, and cache-layer safety controls.
 
 | Cloudflare Item | Project File | Notes |
 | --- | --- | --- |
@@ -581,6 +619,7 @@ Cloudflare can be used for the public frontend, API proxying, DNS, and analytics
 | Worker API proxy | `frontend/worker/index.js` | Used when deploying with Workers Static Assets instead of plain Pages. |
 | Worker config | `frontend/wrangler.toml` | Uses `assets.directory = "./dist"`, SPA fallback handling, and `run_worker_first = ["/api", "/api/*"]`. |
 | Runtime variable | `API_PROXY_URL` | Set to the deployed backend API, normally `https://api.lgu-eptmis.com/api`. |
+| CSAM Scanning Tool | Cloudflare dashboard: `Caching > Configuration` | Enable for the zone with a monitored notification email. It checks cached site content against known CSAM hash lists and can notify/block matched URLs. |
 
 Cloudflare Pages build settings:
 
@@ -600,14 +639,25 @@ Deploy command: npx wrangler deploy
 Non-production deploy command: npx wrangler versions upload
 ```
 
+Cloudflare cache and safety settings:
+
+- Leave Workers/Pages Runtime Cache disabled for the frontend gateway code.
+- Let Cloudflare Pages or Workers Static Assets handle normal static asset caching automatically.
+- Keep custom cache rules limited to fingerprinted `/assets/*` files.
+- Bypass cache for `/api/*`, auth/session, reports, exports, notifications, dashboards, and user endpoints.
+- Set Browser Cache TTL to `Respect Existing Headers`. If a fixed value is required, use `4 hours`, not a long global TTL.
+- Enable the CSAM Scanning Tool at `Caching > Configuration` for the production zone. Use an admin/security email that is actively monitored.
+- Treat a CSAM match as a legal/security incident. Do not casually open, download, share, or inspect the matched file; preserve required records securely, remove public access, and report through the appropriate authority.
+- CSAM scanning is an additional Cloudflare safety layer. It does not replace EPTMIS upload permissions, file access controls, audit logs, or administrator review.
+
 ### Railway Integration
 
 Railway is the intended hosted backend platform for Django.
 
 | Railway Item | Project File or Setting | Notes |
 | --- | --- | --- |
-| Backend Dockerfile | `Dockerfile.railway` | Builds the Django backend from `backend2/`, installs PostgreSQL client libraries, and starts `serve_wsgi.py`. |
-| Railway config | `backend2/railway.json` | Uses `Dockerfile.railway`, runs `python railway_migrate.py` before deploy, starts with `python serve_wsgi.py`, and health-checks `/api/healthz/`. |
+| Backend Dockerfile | `backend2/Dockerfile` | Current Railway service Dockerfile; builds the Django backend, installs PostgreSQL client libraries, and starts `serve_wsgi.py`. |
+| Railway IaC config | `.railway/railway.ts` | Supported Railway project config replacing legacy `railway.json`; preserves the API service, Postgres database, volume, media bucket, custom domain, pre-deploy migration command, and `/api/health/` health check. |
 | Primary database | `DATABASE_URL=${{Postgres.DATABASE_URL}}` | Railway PostgreSQL should be the primary persistent backend database. |
 | Fallback database variables | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`, `PGSSLMODE` | Use only when `DATABASE_URL` is not provided. |
 | Hosted cookies and CORS | `AUTH_COOKIE_SECURE`, `AUTH_COOKIE_SAME_SITE`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | Required for cookie-based auth between `portal.lgu-eptmis.com` and `api.lgu-eptmis.com`. |
@@ -636,6 +686,14 @@ SYNC_BACKUP_ONLY=True
 SYNC_ALLOW_RESTORE_FROM_CLOUD=False
 SYNC_AUTO_START_ON_QUEUE=False
 SYNC_SCHEDULER_ENABLED=False
+SYNC_SCHEDULER_INTERVAL_SECONDS=604800
+SYNC_LOCAL_BACKUP_SCHEDULER_ENABLED=False
+SYNC_LOCAL_BACKUP_INTERVAL_SECONDS=10800
+SYNC_LOCAL_BACKUP_SOURCE=default
+SYNC_LOCAL_BACKUP_TARGET=local_backup
+SYNC_LOCAL_BACKUP_PRUNE=True
+SYNC_CLOUD_BACKUP_SKIP_MEDIA=True
+SYNC_CLOUD_BACKUP_INCREMENTAL=False
 SYNC_CLOUD_CONNECT_TIMEOUT_SECONDS=2
 SYNC_CLOUD_STATEMENT_TIMEOUT_MS=180000
 SYNC_CLOUD_UPLOAD_MAX_RETRIES=3
@@ -654,8 +712,21 @@ Shared Railway primary with local offline fallback:
 # Local IT deployment, normal online mode.
 # Use Railway PostgreSQL through the public database URL.
 DATABASE_URL=<Railway DATABASE_PUBLIC_URL>
-SYNC_ENABLED=False
-SYNC_QUEUE_ENABLED=False
+SUPABASE_DATABASE_URL=<Supabase pooled PostgreSQL URL>
+SYNC_ENABLED=True
+SYNC_QUEUE_ENABLED=True
+SYNC_BACKUP_ONLY=True
+SYNC_ALLOW_RESTORE_FROM_CLOUD=False
+SYNC_FROM_CLOUD_STRATEGY=incremental
+SYNC_SCHEDULER_ENABLED=True
+SYNC_SCHEDULER_INTERVAL_SECONDS=604800
+SYNC_LOCAL_BACKUP_SCHEDULER_ENABLED=True
+SYNC_LOCAL_BACKUP_INTERVAL_SECONDS=10800
+SYNC_LOCAL_BACKUP_SOURCE=default
+SYNC_LOCAL_BACKUP_TARGET=local_backup
+SYNC_LOCAL_BACKUP_PRUNE=True
+SYNC_CLOUD_BACKUP_SKIP_MEDIA=True
+SYNC_CLOUD_BACKUP_INCREMENTAL=False
 LOCAL_BACKUP_SQLITE_PATH=offline_backup.sqlite3
 OFFLINE_FALLBACK_MODE=False
 
@@ -668,6 +739,8 @@ OFFLINE_FALLBACK_READ_ONLY=True
 ```
 
 In this model, `DATABASE_URL` is the shared Railway production database during normal local operation. The `local_backup` alias is refreshed from that primary database for outage access. When `OFFLINE_FALLBACK_MODE=True`, Django switches the default database to the local SQLite backup and the middleware blocks data-changing requests so the fallback copy does not diverge from Railway. Do not enable fallback mode on Railway itself.
+
+The clean scheduled setup has two separate backup paths: Railway primary to local SQLite every 3 hours, and Railway primary to Supabase/cloud backup weekly. Keep `SUPABASE_DATABASE_URL` or a real backup `CLOUD_DATABASE_URL` pointed at the off-site Supabase PostgreSQL database. Do not point the cloud backup alias at the same Railway database as `DATABASE_URL`. Keep the Railway web service scheduler disabled unless a single external worker is responsible for scheduled jobs; multiple Gunicorn workers can duplicate in-process schedules.
 
 For local IT deployments that use Railway Bucket media, keep ordinary uploads local and use the S3-compatible credentials only for explicit media sync:
 
@@ -740,16 +813,68 @@ task.TaskTemplateAuditLog
 
 ### Email Integration
 
-The backend supports Django email delivery through a Resend HTTPS backend:
+The backend supports routed email delivery through separate Resend SMTP and
+Gmail SMTP settings. Use Resend for the web deployment; use Gmail SMTP for
+local deployments. If local Gmail delivery fails and you also configure Resend,
+the app can fall back to Resend explicitly.
+
+Web/Railway Resend SMTP:
 
 ```text
 EMAIL_BACKEND=apps.authentication.email_backends.ResendEmailBackend
-RESEND_API_KEY=
-RESEND_API_URL=https://api.resend.com/emails
-DEFAULT_FROM_EMAIL=LGU EPTMIS <notifications@your-verified-domain.com>
+EMAIL_PROVIDER=resend
+EMAIL_FALLBACK_PROVIDER=
+RESEND_SMTP_HOST=smtp.resend.com
+RESEND_SMTP_PORT=587
+RESEND_SMTP_USE_TLS=True
+RESEND_SMTP_USE_SSL=False
+RESEND_SMTP_HOST_USER=resend
+RESEND_SMTP_HOST_PASSWORD=re_xxxxx
+RESEND_DEFAULT_FROM_EMAIL=LGU EPTMIS <notifications@your-verified-domain.com>
 LOGIN_SECURITY_EMAIL_ENABLED=auto
 EMAIL_ASSET_BASE_URL=https://api.lgu-eptmis.com
 SYSTEM_EMAIL_LOGO_URL=https://api.lgu-eptmis.com/api/system-settings/logo/
+EMAIL_TIMEOUT_SECONDS=5
+```
+
+Local Gmail SMTP:
+
+```text
+EMAIL_BACKEND=apps.authentication.email_backends.ResendEmailBackend
+EMAIL_PROVIDER=gmail
+EMAIL_FALLBACK_PROVIDER=
+GMAIL_SMTP_HOST=smtp.gmail.com
+GMAIL_SMTP_PORT=587
+GMAIL_SMTP_USE_TLS=True
+GMAIL_SMTP_USE_SSL=False
+GMAIL_SMTP_HOST_USER=yourgmail@gmail.com
+GMAIL_SMTP_HOST_PASSWORD=your-google-app-password
+GMAIL_DEFAULT_FROM_EMAIL=yourgmail@gmail.com
+LOGIN_SECURITY_EMAIL_ENABLED=auto
+EMAIL_TIMEOUT_SECONDS=5
+```
+
+Local Gmail with optional Resend fallback:
+
+```text
+EMAIL_BACKEND=apps.authentication.email_backends.ResendEmailBackend
+EMAIL_PROVIDER=gmail
+EMAIL_FALLBACK_PROVIDER=resend
+GMAIL_SMTP_HOST=smtp.gmail.com
+GMAIL_SMTP_PORT=587
+GMAIL_SMTP_USE_TLS=True
+GMAIL_SMTP_USE_SSL=False
+GMAIL_SMTP_HOST_USER=yourgmail@gmail.com
+GMAIL_SMTP_HOST_PASSWORD=your-google-app-password
+GMAIL_DEFAULT_FROM_EMAIL=yourgmail@gmail.com
+RESEND_SMTP_HOST=smtp.resend.com
+RESEND_SMTP_PORT=587
+RESEND_SMTP_USE_TLS=True
+RESEND_SMTP_USE_SSL=False
+RESEND_SMTP_HOST_USER=resend
+RESEND_SMTP_HOST_PASSWORD=re_xxxxx
+RESEND_DEFAULT_FROM_EMAIL=LGU EPTMIS <notifications@your-verified-domain.com>
+LOGIN_SECURITY_EMAIL_ENABLED=auto
 EMAIL_TIMEOUT_SECONDS=5
 ```
 
